@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dmapp/models/message_model.dart';
+import 'package:dmapp/models/structures.dart';
 import 'package:dmapp/models/user_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -36,7 +38,39 @@ class RecentUserState extends State<RecentUser> {
           ),
           IconButton(
             icon: Icon(Icons.person_add),
-            onPressed: () {},
+            onPressed: () {
+              UserModel u = UserModel();
+              u.email = FirebaseAuth.instance.currentUser.email;
+              u.displayName = FirebaseAuth.instance.currentUser.displayName;
+              u.userId = FirebaseAuth.instance.currentUser.uid;
+
+              if (Globals.currentUser.friends == null) {
+                Globals.currentUser.friends = [];
+              }
+
+              u.friends = Globals.currentUser.friends;
+              u.friends.add(widget.user.userId);
+
+              FirebaseFirestore.instance
+                  .collection("users")
+                  .doc(FirebaseAuth.instance.currentUser.uid)
+                  .update(u.toJson())
+                  .then(
+                (value) {
+                  Globals.currentUser.friends.add(widget.user.userId);
+                },
+              ).onError(
+                (error, stackTrace) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        error.toString(),
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
           ),
         ],
       ),

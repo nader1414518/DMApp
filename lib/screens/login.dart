@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dmapp/models/structures.dart';
 import 'package:dmapp/models/user_model.dart';
+import 'package:dmapp/screens/forgot_password.dart';
 import 'package:dmapp/screens/home.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
@@ -146,8 +147,14 @@ class LoginState extends State<Login> {
                         .get()
                         .then((uT) {
                       if (uT.data().containsKey('friends')) {
-                        for (var f in uT.data().values) {
-                          Globals.currentUser.friends.add(f.toString());
+                        var friends = uT.data().entries;
+                        for (var f in friends) {
+                          if (f.key == "friends") {
+                            for (var val in f.value) {
+                              Globals.currentUser.friends.add(val.toString());
+                              print("Friend: " + val.toString());
+                            }
+                          }
                         }
 
                         print("Retrieved friends list ... ");
@@ -175,6 +182,28 @@ class LoginState extends State<Login> {
                 );
               },
             ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(40.0, 10.0, 40.0, 0.0),
+            child: TextButton(
+                style: ButtonStyle(
+                    // backgroundColor: MaterialStateProperty.all<Color>(
+                    //   Colors.blue,
+                    // ),
+                    // elevation: MaterialStateProperty.all<double>(3.0),
+                    // foregroundColor:
+                    //     MaterialStateProperty.all<Color>(Colors.white),
+                    ),
+                child: Text("Forgot password?"),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) {
+                        return ForgotPassword();
+                      },
+                    ),
+                  );
+                }),
           )
         ],
       ),
