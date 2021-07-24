@@ -5,6 +5,7 @@ import 'package:dmapp/models/user_model.dart';
 import 'package:dmapp/screens/navdrawer.dart';
 import 'package:dmapp/screens/settings.dart';
 import 'package:dmapp/screens/welcome_screen.dart';
+import 'package:dmapp/widgets/recent_chat_preview.dart';
 import 'package:dmapp/widgets/recent_friend.dart';
 import 'package:dmapp/widgets/recent_user.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -92,8 +93,60 @@ class HomeState extends State<Home> {
           ),
           body: TabBarView(
             children: [
-              ListView(
-                children: [],
+              StreamBuilder(
+                stream: FirebaseFirestore.instance
+                    .collection("users")
+                    .doc(FirebaseAuth.instance.currentUser.uid)
+                    .collection("messages")
+                    .snapshots(),
+                builder: (BuildContext context,
+                    AsyncSnapshot<QuerySnapshot> snapshot) {
+                  if (snapshot.hasError) {
+                    return Container(
+                      child: Center(
+                        child: Text("No messages available ... "),
+                      ),
+                    );
+                  }
+
+                  if (snapshot.connectionState == ConnectionState.active) {
+                    var chats = snapshot.data.docs.map(
+                      (doc) {
+                        print("Retrieving messages ... ");
+
+                        var messages = doc['messages'];
+                        var lastMessage = messages.last;
+
+                        MessageModel msg = MessageModel.fromJson(lastMessage);
+
+                        return Padding(
+                          padding: EdgeInsets.fromLTRB(
+                            20.0,
+                            10.0,
+                            20.0,
+                            5.0,
+                          ),
+                          child: RecentChatPreview(
+                            msg: msg,
+                            lastMessage: msg.text,
+                          ),
+                        );
+                      },
+                    ).toList();
+
+                    return ListView(
+                      shrinkWrap: true,
+                      physics: ClampingScrollPhysics(),
+                      children: chats,
+                    );
+                  }
+
+                  return Container(
+                    child: Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                },
               ),
               StreamBuilder(
                 stream:

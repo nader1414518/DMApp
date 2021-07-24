@@ -45,6 +45,8 @@ class ChatScreenState extends State<ChatScreen> {
                 .collection("users")
                 .doc(FirebaseAuth.instance.currentUser.uid)
                 .collection("messages")
+                .doc(widget.user.userId)
+                .collection("messages")
                 .snapshots(),
             builder:
                 (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
@@ -57,7 +59,22 @@ class ChatScreenState extends State<ChatScreen> {
               }
 
               if (snapshot.connectionState == ConnectionState.active) {
+                var msgs = snapshot.data.docs.map(
+                  (doc) {
+                    MessageModel msg = MessageModel.fromJson(doc.data());
+                    return RecentMessage(
+                      message: msg,
+                    );
+                  },
+                ).toList();
+                msgs.sort(
+                  (a, b) => DateTime.parse(a.message.date).compareTo(
+                    DateTime.parse(b.message.date),
+                  ),
+                );
+
                 return ListView(
+                  padding: EdgeInsets.fromLTRB(0.0, 10.0, 0.0, 5.0),
                   shrinkWrap: true,
                   physics: ClampingScrollPhysics(),
                   children: [
@@ -67,21 +84,7 @@ class ChatScreenState extends State<ChatScreen> {
                       child: ListView(
                         shrinkWrap: true,
                         physics: ClampingScrollPhysics(),
-                        children: snapshot.data.docs.map(
-                          (doc) {
-                            if (doc.id == widget.user.userId) {
-                              if (doc['messages'] != null) {
-                                for (var message in doc['messages']) {
-                                  MessageModel msg =
-                                      MessageModel.fromJson(message);
-                                  return RecentMessage(
-                                    message: msg,
-                                  );
-                                }
-                              }
-                            }
-                          },
-                        ).toList(),
+                        children: msgs,
                       ),
                     ),
                     Container(
@@ -101,6 +104,7 @@ class ChatScreenState extends State<ChatScreen> {
                                   ),
                                   hintText: "Write message here .. ",
                                 ),
+                                controller: msgController,
                               ),
                             ),
                           ),
@@ -111,8 +115,70 @@ class ChatScreenState extends State<ChatScreen> {
                               icon: Icon(Icons.send),
                               onPressed: () {
                                 // Should send messages here
-                                if (msgController.text != "" &&
-                                    msgController.text != null) {}
+                                if (msgController.text.isNotEmpty) {
+                                  // Forward the message to the chat channel
+                                  MessageModel messageModel = MessageModel();
+                                  messageModel.from =
+                                      FirebaseAuth.instance.currentUser.uid;
+                                  messageModel.to = widget.user.userId;
+                                  messageModel.text = msgController.text;
+                                  messageModel.photoUrl = "";
+                                  messageModel.time =
+                                      DateTime.now().hour.toString() +
+                                          ":" +
+                                          DateTime.now().minute.toString();
+                                  messageModel.date = DateTime.now().toString();
+
+                                  FirebaseFirestore.instance
+                                      .collection("users")
+                                      .doc(widget.user.userId)
+                                      .collection("messages")
+                                      .doc(
+                                          FirebaseAuth.instance.currentUser.uid)
+                                      .collection("messages")
+                                      .add(messageModel.toJson())
+                                      .then(
+                                    (val1) {
+                                      FirebaseFirestore.instance
+                                          .collection("users")
+                                          .doc(FirebaseAuth
+                                              .instance.currentUser.uid)
+                                          .collection("messages")
+                                          .doc(widget.user.userId)
+                                          .collection("messages")
+                                          .add(messageModel.toJson())
+                                          .then((val2) {
+                                        print("Sent message ... ");
+                                      }).onError((error, stackTrace) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              error.toString(),
+                                            ),
+                                          ),
+                                        );
+                                      });
+                                    },
+                                  ).onError(
+                                    (error, stackTrace) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            error.toString(),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  );
+
+                                  setState(
+                                    () {
+                                      msgController.text = "";
+                                    },
+                                  );
+                                }
                               },
                             ),
                           ),
@@ -123,11 +189,7 @@ class ChatScreenState extends State<ChatScreen> {
                 );
               }
 
-              return Container(
-                child: Center(
-                  child: CircularProgressIndicator(),
-                ),
-              );
+              return Container();
             },
           ),
         ],

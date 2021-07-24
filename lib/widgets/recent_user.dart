@@ -51,6 +51,12 @@ class RecentUserState extends State<RecentUser> {
               u.friends = Globals.currentUser.friends;
               u.friends.add(widget.user.userId);
 
+              if (widget.user.friends == null) {
+                widget.user.friends = [];
+              }
+
+              widget.user.friends.add(FirebaseAuth.instance.currentUser.uid);
+
               FirebaseFirestore.instance
                   .collection("users")
                   .doc(FirebaseAuth.instance.currentUser.uid)
@@ -58,6 +64,20 @@ class RecentUserState extends State<RecentUser> {
                   .then(
                 (value) {
                   Globals.currentUser.friends.add(widget.user.userId);
+                  FirebaseFirestore.instance
+                      .collection("users")
+                      .doc(widget.user.userId)
+                      .update(widget.user.toJson())
+                      .then((t) {})
+                      .onError((error, stackTrace) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          error.toString(),
+                        ),
+                      ),
+                    );
+                  });
                 },
               ).onError(
                 (error, stackTrace) {
