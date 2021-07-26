@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.ns.dmapp">
    <application
-        android:label="dmapp"
+        android:label="DM App"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"

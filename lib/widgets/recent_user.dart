@@ -38,7 +38,7 @@ class RecentUserState extends State<RecentUser> {
           ),
           IconButton(
             icon: Icon(Icons.person_add),
-            onPressed: () {
+            onPressed: () async {
               UserModel u = UserModel();
               u.email = FirebaseAuth.instance.currentUser.email;
               u.displayName = FirebaseAuth.instance.currentUser.displayName;
@@ -57,39 +57,17 @@ class RecentUserState extends State<RecentUser> {
 
               widget.user.friends.add(FirebaseAuth.instance.currentUser.uid);
 
-              FirebaseFirestore.instance
+              await FirebaseFirestore.instance
                   .collection("users")
                   .doc(FirebaseAuth.instance.currentUser.uid)
-                  .update(u.toJson())
-                  .then(
-                (value) {
-                  Globals.currentUser.friends.add(widget.user.userId);
-                  FirebaseFirestore.instance
-                      .collection("users")
-                      .doc(widget.user.userId)
-                      .update(widget.user.toJson())
-                      .then((t) {})
-                      .onError((error, stackTrace) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          error.toString(),
-                        ),
-                      ),
-                    );
-                  });
-                },
-              ).onError(
-                (error, stackTrace) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        error.toString(),
-                      ),
-                    ),
-                  );
-                },
-              );
+                  .update(u.toJson());
+
+              Globals.currentUser.friends.add(widget.user.userId);
+
+              await FirebaseFirestore.instance
+                  .collection("users")
+                  .doc(widget.user.userId)
+                  .update(widget.user.toJson());
             },
           ),
         ],

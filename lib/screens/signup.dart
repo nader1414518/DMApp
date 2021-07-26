@@ -186,6 +186,7 @@ class SignUpState extends State<SignUp> {
                       email: value.user.email,
                       userId: value.user.uid,
                       friends: [],
+                      chats: [],
                     );
 
                     FirebaseFirestore.instance

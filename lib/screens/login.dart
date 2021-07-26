@@ -139,6 +139,7 @@ class LoginState extends State<Login> {
                       email: value.user.email,
                       userId: value.user.uid,
                       friends: [],
+                      chats: [],
                     );
 
                     FirebaseFirestore.instance
@@ -146,19 +147,7 @@ class LoginState extends State<Login> {
                         .doc(Globals.currentUser.userId)
                         .get()
                         .then((uT) {
-                      if (uT.data().containsKey('friends')) {
-                        var friends = uT.data().entries;
-                        for (var f in friends) {
-                          if (f.key == "friends") {
-                            for (var val in f.value) {
-                              Globals.currentUser.friends.add(val.toString());
-                              print("Friend: " + val.toString());
-                            }
-                          }
-                        }
-
-                        print("Retrieved friends list ... ");
-                      }
+                      Globals.currentUser = UserModel.fromJson(uT.data());
                     }).onError((error, stackTrace) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(

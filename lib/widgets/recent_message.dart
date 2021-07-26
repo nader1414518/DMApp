@@ -25,6 +25,7 @@ class RecentMessageState extends State<RecentMessage> {
           ? EdgeInsets.fromLTRB(30.0, 5.0, 5.0, 0.0)
           : EdgeInsets.fromLTRB(5.0, 5.0, 30.0, 0.0),
       child: Container(
+        width: MediaQuery.of(context).size.width * 0.8,
         padding: EdgeInsets.fromLTRB(10.0, 5.0, 10.0, 5.0),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.all(
@@ -37,9 +38,15 @@ class RecentMessageState extends State<RecentMessage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(10.0, 5.0, 10.0, 5.0),
-              child: Text(widget.message.text),
+            Flexible(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(10.0, 5.0, 10.0, 5.0),
+                child: Text(
+                  widget.message.text,
+                  softWrap: true,
+                  overflow: TextOverflow.fade,
+                ),
+              ),
             ),
           ],
         ),

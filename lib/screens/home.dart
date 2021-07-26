@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dmapp/models/chat_model.dart';
 import 'package:dmapp/models/message_model.dart';
 import 'package:dmapp/models/structures.dart';
 import 'package:dmapp/models/user_model.dart';
@@ -94,58 +95,76 @@ class HomeState extends State<Home> {
           body: TabBarView(
             children: [
               StreamBuilder(
-                stream: FirebaseFirestore.instance
-                    .collection("users")
-                    .doc(FirebaseAuth.instance.currentUser.uid)
-                    .collection("messages")
-                    .snapshots(),
+                stream:
+                    FirebaseFirestore.instance.collection("users").snapshots(),
                 builder: (BuildContext context,
                     AsyncSnapshot<QuerySnapshot> snapshot) {
-                  if (snapshot.hasError) {
+                  try {
+                    if (snapshot.hasError) {
+                      return Container(
+                        child: Center(
+                          child: Text("No messages available ... "),
+                        ),
+                      );
+                    }
+
+                    if (!snapshot.hasData) {
+                      return Container(
+                        child: Center(
+                          child: Text("No messages available ... "),
+                        ),
+                      );
+                    }
+
+                    if (snapshot.connectionState == ConnectionState.active) {
+                      List<Widget> chatPreviewsWidgets = [];
+
+                      print("Retrieving messages ... ");
+
+                      if (snapshot.data.docs.isEmpty) {
+                        print("No docs found ... ");
+                      }
+
+                      snapshot.data.docs.map(
+                        (doc) {
+                          if (doc.id == FirebaseAuth.instance.currentUser.uid) {
+                            for (var chat in doc['chats']) {
+                              ChatModel chatModel = ChatModel.fromJson(chat);
+
+                              chatPreviewsWidgets.add(
+                                Padding(
+                                  padding: EdgeInsets.fromLTRB(
+                                    20.0,
+                                    10.0,
+                                    20.0,
+                                    5.0,
+                                  ),
+                                  child: RecentChatPreview(
+                                    chatModel: chatModel,
+                                  ),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                      ).toList();
+
+                      return ListView(
+                        shrinkWrap: true,
+                        physics: ClampingScrollPhysics(),
+                        children: chatPreviewsWidgets,
+                      );
+                    }
+
                     return Container(
                       child: Center(
-                        child: Text("No messages available ... "),
+                        child: CircularProgressIndicator(),
                       ),
                     );
+                  } catch (ex) {
+                    print(ex.toString());
+                    return Container();
                   }
-
-                  if (snapshot.connectionState == ConnectionState.active) {
-                    var chats = snapshot.data.docs.map(
-                      (doc) {
-                        print("Retrieving messages ... ");
-
-                        var messages = doc['messages'];
-                        var lastMessage = messages.last;
-
-                        MessageModel msg = MessageModel.fromJson(lastMessage);
-
-                        return Padding(
-                          padding: EdgeInsets.fromLTRB(
-                            20.0,
-                            10.0,
-                            20.0,
-                            5.0,
-                          ),
-                          child: RecentChatPreview(
-                            msg: msg,
-                            lastMessage: msg.text,
-                          ),
-                        );
-                      },
-                    ).toList();
-
-                    return ListView(
-                      shrinkWrap: true,
-                      physics: ClampingScrollPhysics(),
-                      children: chats,
-                    );
-                  }
-
-                  return Container(
-                    child: Center(
-                      child: CircularProgressIndicator(),
-                    ),
-                  );
                 },
               ),
               StreamBuilder(
@@ -162,48 +181,54 @@ class HomeState extends State<Home> {
                   }
 
                   if (snapshot.connectionState == ConnectionState.active) {
+                    List<Widget> fnds = [];
+
+                    snapshot.data.docs.map((doc) {
+                      if (doc.id == FirebaseAuth.instance.currentUser.uid) {
+                        // get friends field in the map
+                        var friends = doc['friends'];
+                        if (friends == null) {
+                          return Container();
+                        }
+
+                        if (friends == []) {
+                          return Container();
+                        }
+
+                        for (var friend in friends) {
+                          UserModel user = UserModel();
+                          user.userId = friend.toString();
+                          user.email = snapshot.data.docs
+                              .where((element) => element.id == user.userId)
+                              .first['email'];
+                          user.displayName = snapshot.data.docs
+                              .where((element) => element.id == user.userId)
+                              .first['displayName'];
+                          user.friends = [];
+
+                          fnds.add(Padding(
+                            padding: EdgeInsets.fromLTRB(
+                              20.0,
+                              10.0,
+                              20.0,
+                              5.0,
+                            ),
+                            child: RecentFriend(
+                              user: user,
+                            ),
+                          ));
+                        }
+                      } else {
+                        fnds.add(Container());
+                      }
+                    }).toList();
+
+                    fnds = fnds.toSet().toList();
+
                     return ListView(
                       shrinkWrap: true,
                       physics: ClampingScrollPhysics(),
-                      children: snapshot.data.docs.map((doc) {
-                        if (doc.id == FirebaseAuth.instance.currentUser.uid) {
-                          // get friends field in the map
-                          var friends = doc['friends'];
-                          if (friends == null) {
-                            return Container();
-                          }
-
-                          if (friends == []) {
-                            return Container();
-                          }
-
-                          for (var friend in friends) {
-                            UserModel user = UserModel();
-                            user.userId = friend.toString();
-                            user.email = snapshot.data.docs
-                                .where((element) => element.id == user.userId)
-                                .first['email'];
-                            user.displayName = snapshot.data.docs
-                                .where((element) => element.id == user.userId)
-                                .first['displayName'];
-                            user.friends = [];
-
-                            return Padding(
-                              padding: EdgeInsets.fromLTRB(
-                                20.0,
-                                10.0,
-                                20.0,
-                                5.0,
-                              ),
-                              child: RecentFriend(
-                                user: user,
-                              ),
-                            );
-                          }
-                        } else {
-                          return Container();
-                        }
-                      }).toList(),
+                      children: fnds,
                     );
                   }
 
